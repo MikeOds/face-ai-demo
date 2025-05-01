@@ -2,9 +2,7 @@ export default async function handler(req, res) {
   try {
     const { image, prompt } = req.body;
 
-    console.log("📩 Λήφθηκε αίτημα με prompt:", prompt);
     if (!image || !prompt) {
-      console.error("❌ Λείπει image ή prompt");
       return res.status(400).json({ error: "Missing image or prompt" });
     }
 
@@ -24,11 +22,8 @@ export default async function handler(req, res) {
     });
 
     const data = await replicateResponse.json();
-    console.log("🟢 AI απάντηση:", data);
-
     res.status(200).json(data);
   } catch (error) {
-    console.error("🔥 ΣΦΑΛΜΑ:", error);
     res.status(500).json({ error: "Internal server error", details: error.message });
   }
 }

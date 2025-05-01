@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Face Simulation</title>
+</head>
+<body>
+  <h2>Ανέβασε φωτογραφία και διάλεξε επέμβαση</h2>
+  <input type="file" id="imageInput" accept="image/*"><br><br>
+  <select id="promptSelect">
+    <option value="woman after facelift, smooth skin, same face">Facelift</option>
+    <option value="woman after botox, wrinkle-free skin, same face">Botox</option>
+    <option value="woman after rhinoplasty, refined nose, same face">Μύτη</option>
+  </select><br><br>
+  <button onclick="uploadAndSend()">Δες Αποτέλεσμα</button>
+  <div id="result"></div>
+
+  <script>
+    async function uploadAndSend() {
+      const fileInput = document.getElementById('imageInput');
+      const prompt = document.getElementById('promptSelect').value;
+      const resultDiv = document.getElementById('result');
+
+      if (!fileInput.files.length) {
+        alert('Παρακαλώ ανέβασε μια φωτογραφία.');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onloadend = async function () {
+        const base64Image = reader.result;
+
+        resultDiv.innerHTML = '⏳ Επεξεργασία...';
+
+        const response = await fetch('/api/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64Image, prompt })
+        });
+
+        const json = await response.json();
+        if (json.urls && json.urls.get) {
+          checkStatus(json.urls.get, resultDiv);
+        } else {
+          resultDiv.innerHTML = '❌ Σφάλμα κατά την αποστολή στο AI.';
+        }
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    async function checkStatus(statusUrl, resultDiv) {
+      let completed = false;
+      while (!completed) {
+        const res = await fetch(statusUrl);
+        const data = await res.json();
+        if (data.status === 'succeeded') {
+          resultDiv.innerHTML = `<h3>Αποτέλεσμα:</h3><img src="${data.output[0]}" style="max-width: 100%;">`;
+          completed = true;
+        } else if (data.status === 'failed') {
+          resultDiv.innerHTML = '❌ Η επεξεργασία απέτυχε.';
+          completed = true;
+        } else {
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
+    }
+  </script>
+</body>
+</html>
